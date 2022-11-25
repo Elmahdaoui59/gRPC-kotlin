@@ -1,0 +1,25 @@
+syntax = "proto3";
+
+package org.example;
+option java_outer_classname = "route_guide";
+
+service Greeter {
+  rpc uploadFile (stream Chunk) returns (UploadStatus) {}
+}
+
+message UploadStatus {
+  enum UploadStatusCode {
+    Unknown = 0;
+    Ok = 1;
+    Failed = 2;
+  }
+
+  string message = 1;
+  UploadStatusCode code = 2;
+}
+
+message Chunk {
+  bytes content = 1;
+}
+
+
