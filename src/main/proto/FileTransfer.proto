@@ -1,9 +1,8 @@
 syntax = "proto3";
 
 package org.example;
-option java_outer_classname = "route_guide";
 
-service Greeter {
+service Upload {
   rpc uploadFile (stream Chunk) returns (UploadStatus) {}
 }
 
