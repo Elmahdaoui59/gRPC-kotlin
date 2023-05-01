@@ -1,12 +1,11 @@
+import com.eldevs.grpctest.FileTransfer
+import com.eldevs.grpctest.MetadataGrpcKt
+import com.eldevs.grpctest.UploadGrpcKt
 import io.grpc.Server
 import io.grpc.ServerBuilder
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.withContext
-import org.example.FileTransfer
-import org.example.FileTransfer.Chunk
-import org.example.UploadGrpcKt
-
 import java.io.File
 import java.io.FileOutputStream
 
@@ -21,7 +20,8 @@ class FileTransferServer(
     private val port: Int
 ) {
     val server: Server = ServerBuilder.forPort(port)
-        .addService(HelloWorldService())
+        .addService(GetFileMetadataService())
+        .addService(GetFileService())
         .build()
 
     fun start() {
@@ -44,15 +44,39 @@ class FileTransferServer(
         server.awaitTermination()
     }
 
-    internal class HelloWorldService : UploadGrpcKt.UploadCoroutineImplBase() {
-        override suspend fun uploadFile(requests: Flow<Chunk>): FileTransfer.UploadStatus {
+    var fileName: String? = null
+    inner class GetFileMetadataService : MetadataGrpcKt.MetadataCoroutineImplBase() {
+        override suspend fun sendMetadata(request: FileTransfer.FileMetadata): FileTransfer.UploadStatus {
+            try {
+                fileName = request.name
+                val fileExtension = request.extension
+                println("File name : $fileName\nFile Extension : $fileExtension")
+                if (fileName.isNullOrBlank() or fileExtension.isNullOrBlank())
+                    throw Exception("Error receiving metadata")
+
+            } catch (e: Exception) {
+                e.printStackTrace()
+                return FileTransfer.UploadStatus.newBuilder()
+                    .setCode(FileTransfer.UploadStatus.UploadStatusCode.Failed)
+                    .setMessage(e.message)
+                    .build()
+            }
+            return FileTransfer.UploadStatus.newBuilder()
+                .setCode(FileTransfer.UploadStatus.UploadStatusCode.Ok)
+                .build()
+        }
+    }
+
+    inner class GetFileService : UploadGrpcKt.UploadCoroutineImplBase() {
+        override suspend fun uploadFile(requests: Flow<FileTransfer.Chunk>): FileTransfer.UploadStatus {
+
             val outputDir = File(
-                "/home/ax/receivedBytes"
+                "C:\\Users\\dell\\Documents", "FileTransferGrpc"
             )
             if (!outputDir.exists()) {
                 outputDir.mkdirs()
             }
-            val outputFile = File(outputDir, "bytes.png")
+            val outputFile = File(outputDir, fileName)
             var out: FileOutputStream? = null
             try {
                 withContext(Dispatchers.IO) {
@@ -74,6 +98,8 @@ class FileTransferServer(
                 out?.let {
                     withContext(Dispatchers.IO) {
                         try {
+                            it.flush()
+                            it.flush()
                             it.close()
                         } catch (e: Exception) {
                             e.printStackTrace()

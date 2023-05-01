@@ -1,9 +1,19 @@
 syntax = "proto3";
 
-package org.example;
+//package org.example;
+option java_package = 'com.eldevs.grpctest';
+
 
 service Upload {
   rpc uploadFile (stream Chunk) returns (UploadStatus) {}
+}
+
+service Download {
+  rpc downloadFile (DownloadStatus) returns (stream Chunk) {}
+}
+
+service Metadata {
+  rpc sendMetadata (FileMetadata) returns (UploadStatus) {}
 }
 
 message UploadStatus {
@@ -17,8 +27,23 @@ message UploadStatus {
   UploadStatusCode code = 2;
 }
 
+message DownloadStatus {
+  enum UploadStatusCode {
+    Unknown = 0;
+    Ok = 1;
+    Failed = 2;
+  }
+
+  string message = 1;
+  UploadStatusCode code = 2;
+}
+
 message Chunk {
   bytes content = 1;
+}
+message FileMetadata {
+  string name = 1;
+  string extension = 2;
 }
 
 
